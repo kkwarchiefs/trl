@@ -239,6 +239,7 @@ for cur_big_epoch in range(10):
             response_tensors.append(torch.tensor(response))
         batch["query"] = [tokenizer.decode(torch.tensor(r).squeeze()) for r in query_input_ids_tensors]
         batch["response"] = [tokenizer.decode(r.squeeze()) for r in response_tensors]
+        print("batch details: ", batch)
         #print(batch["prompt"])
         #print(batch["response"])
         if str(ppo_trainer.accelerator.device) == "cuda:0":
