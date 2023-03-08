@@ -19,7 +19,8 @@ from typing import List, Optional, Union
 
 import datasets
 import torch
-from accelerate import Accelerator
+from accelerate import Accelerator, DeepSpeedPlugin
+from accelerate.utils import DummyOptim, DummyScheduler
 from datasets import Dataset
 from huggingface_hub import whoami
 from packaging import version
@@ -232,12 +233,20 @@ class PPOTrainer(BaseTrainer):
 
         # Step 3: Initialize optimizer and data collator
         self.data_collator = DataCollatorForLanguageModeling(self.tokenizer, mlm=False)
+        '''
         if optimizer is None:
             self.optimizer = Adam(
                 filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.config.learning_rate
             )
         else:
             self.optimizer = optimizer
+        '''
+        # https://huggingface.co/docs/accelerate/usage_guides/deepspeed
+        optimizer_cls = (DummyOptim)
+        self.optimizer = optimizer_cls(self.model.parameters(), lr=self.config.learning_rate)
+
+        #lr_scheduler = DummyScheduler(optimizer, total_num_steps=args.max_train_steps, warmup_num_steps=args.num_warmup_steps)
+
 
         self.lr_scheduler = lr_scheduler
         if self.lr_scheduler is not None:
