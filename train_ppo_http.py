@@ -171,10 +171,10 @@ def collator(data):
 triton_client = httpclient.InferenceServerClient(url="10.212.204.89:8000")
 # set seed before initializing value head for deterministic eval
 set_seed(0)
-print("os LOCAL_RANK", os.environ["LOCAL_RANK"])
-if int(os.environ["LOCAL_RANK"]) % 2 == 1:
-    print("sleep some time" )
-    time.sleep(120)
+# print("os LOCAL_RANK", os.environ["LOCAL_RANK"])
+# if int(os.environ["LOCAL_RANK"]) % 2 == 1:
+#     print("sleep some time" )
+#     time.sleep(120)
 # Now let's build the model, the reference model, and the tokenizer.
 tokenizer = AutoTokenizer.from_pretrained(config.model_name, trust_remote_code=True)
 model = AutoModelForSeq2SeqLMWithValueHead.from_pretrained(config.model_name, trust_remote_code=True)
