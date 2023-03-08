@@ -324,7 +324,7 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
         **kwargs,
     ):
         temp_inputs = self.tokenizer.build_inputs_for_generation_from_tensor(input_ids, kwargs["decoder_input_ids"])
-        print([self.tokenizer.decode(torch.tensor(r)) for r in temp_inputs['input_ids'].numpy()])
+        print([self.tokenizer.decode(torch.tensor(r)) for r in temp_inputs['input_ids'].cpu().numpy()])
         base_model_output = self.pretrained_model(**temp_inputs)
 
         last_hidden_state = base_model_output.mems[-1]
