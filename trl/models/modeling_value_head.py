@@ -103,8 +103,8 @@ class AutoModelForCausalLMWithValueHead(PreTrainedModelWrapper):
         super().__init__(pretrained_model)
         v_head_kwargs, _ = self._split_kwargs(kwargs)
 
-        if not any(hasattr(self.pretrained_model, attribute) for attribute in self.lm_head_namings):
-            raise ValueError("The model does not have a language model head, please use a model that has one.")
+        # if not any(hasattr(self.pretrained_model, attribute) for attribute in self.lm_head_namings):
+        #     raise ValueError("The model does not have a language model head, please use a model that has one.")
 
         self.v_head = ValueHead(self.pretrained_model.config, **v_head_kwargs)
 
@@ -323,15 +323,10 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
         attention_mask=None,
         **kwargs,
     ):
-        base_model_output = self.pretrained_model(
-            input_ids=input_ids,
-            past_key_values=past_key_values,
-            attention_mask=attention_mask,
-            output_hidden_states=True,  # We force the model to output hidden states
-            **kwargs,
-        )
+        temp_inputs = self.tokenizer.build_inputs_for_generation_from_tensor(input_ids, kwargs["decoder_input_ids"])
+        base_model_output = self.pretrained_model(**temp_inputs)
 
-        last_hidden_state = base_model_output.decoder_hidden_states[-1]
+        last_hidden_state = base_model_output.mems[-1]
         lm_logits = base_model_output.logits
         loss = base_model_output.loss
 
@@ -340,7 +335,8 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
         # force upcast in fp32 if logits are in half-precision
         if lm_logits.dtype != torch.float32:
             lm_logits = lm_logits.float()
-
+        lm_logits = lm_logits[:,input_ids.size()[1]:,:][:, :kwargs["decoder_input_ids"].size()[1], :]
+        value = value[:,input_ids.size()[1]:][:, :kwargs["decoder_input_ids"].size()[1]]
         return (lm_logits, loss, value)
 
     def generate(self, *args, **kwargs):
