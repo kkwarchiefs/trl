@@ -259,6 +259,9 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
 
         self._init_weights(**v_head_kwargs)
 
+    def set_tokenizer(self, tokenizer):
+        self.tokenizer = tokenizer
+
     def _has_lm_head(self):
         # check module names of all modules inside `pretrained_model` to find the language model head
         for name, module in self.pretrained_model.named_modules():
