@@ -613,7 +613,7 @@ class PPOTrainer(BaseTrainer):
             ge_inputs['prompt_mask'] = torch.zeros_like(ge_inputs['input_ids'])
             ge_inputs['prompt_mask'][:, :inputs['input_ids'].shape[1]] = inputs['attention_mask']
             print("ge_inputs", [(k, v.shape) for k, v in ge_inputs.items()])
-            ge_inputs_batch.append(ge_inputs)
+            ge_inputs_batch.append({k: v.unsqueeze(0) for k, v in ge_inputs.items()})
         return self.data_collator(ge_inputs_batch).to(self.accelerator.device)
 
     def batched_forward_pass(
