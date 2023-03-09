@@ -653,12 +653,12 @@ class PPOTrainer(BaseTrainer):
             response_batch = responses[i * fbs : (i + 1) * fbs]
             logits, _, values = model(**input_kwargs)
 
-            if self.is_encoder_decoder:
-                input_ids = input_kwargs["decoder_input_ids"]
-                attention_mask = input_kwargs["decoder_attention_mask"]
-            else:
-                input_ids = input_kwargs["input_ids"]
-                attention_mask = input_kwargs["attention_mask"]
+            # if self.is_encoder_decoder:
+            #     input_ids = input_kwargs["decoder_input_ids"]
+            #     attention_mask = input_kwargs["decoder_attention_mask"]
+            # else:
+            input_ids = input_kwargs["input_ids"]
+            attention_mask = input_kwargs["attention_mask"]
 
             logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
             masks = torch.zeros_like(attention_mask)
