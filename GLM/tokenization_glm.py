@@ -192,9 +192,9 @@ class GLMTokenizerMixin:
         mask_ids = self.mask_token_ids
         targets = torch.tensor(targets, dtype=input_ids.dtype, device=input_ids.device)
         batch_size, seq_length = input_ids.shape[:2]
+        max_gen_length = targets.shape[1]
         position_id, block_position_id = list(range(seq_length)), [0 for _ in range(seq_length)]
         position_ids, block_position_ids = [], []
-        labels = None
         for i in range(batch_size):
             mask_positions = []
             for mask_id in mask_ids:

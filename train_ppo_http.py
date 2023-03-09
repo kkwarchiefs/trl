@@ -229,6 +229,7 @@ for cur_big_epoch in range(10):
         query_input_ids_tensors = batch["input_ids"]
         query_position_ids_tensors = batch["position_ids"]
         query_generation_attention_mask_tensors = batch["generation_attention_mask"]
+        print("batch", batch)
         if str(ppo_trainer.accelerator.device) == "cuda:0":
             print("epoch:"+str(epoch) + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         response_tensors = []
