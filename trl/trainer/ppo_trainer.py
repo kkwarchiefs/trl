@@ -613,7 +613,7 @@ class PPOTrainer(BaseTrainer):
             ge_inputs['prompt_mask'] = torch.zeros_like(ge_inputs['input_ids'])
             ge_inputs['prompt_mask'][:, :inputs['input_ids'].shape[1]] = inputs['attention_mask']
             print("ge_inputs", [(k, v.shape) for k, v in ge_inputs.items()])
-            ge_inputs_batch.append({k: v.unsqueeze(0) for k, v in ge_inputs.items()})
+            ge_inputs_batch.append({k: v.squeeze(0) for k, v in ge_inputs.items()})
         return self.data_collator(ge_inputs_batch).to(self.accelerator.device)
 
     def batched_forward_pass(
@@ -662,36 +662,36 @@ class PPOTrainer(BaseTrainer):
 
             # logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
             logprobs = logprobs_from_logits(logits, input_ids)
-            masks = torch.zeros_like(attention_mask)
-            masks[:, :-1] = attention_mask[:, 1:]
-
-            for j in range(fbs):
-                if self.is_encoder_decoder:
-                    # Decoder sentence starts always in the index 1 after padding in the Enc-Dec Models
-                    start = 1
-                    end = attention_mask[j, :].sum() - 1
-                else:
-                    start = len(query_batch[j]) - 1
-                    if attention_mask[j, 0] == 0:  # offset left padding
-                        start += attention_mask[j, :].nonzero()[0]
-                    end = start + len(response_batch[j])
-
-                if len(logprobs[j, start:end]) < 2:
-                    raise ValueError("Responses are too short. Make sure they are at least 4 tokens long.")
-
-                masks[j, :start] = 0
-                masks[j, end:] = 0
+            # masks = torch.zeros_like(attention_mask)
+            # masks[:, :-1] = attention_mask[:, 1:]
+            #
+            # for j in range(fbs):
+            #     if self.is_encoder_decoder:
+            #         # Decoder sentence starts always in the index 1 after padding in the Enc-Dec Models
+            #         start = 1
+            #         end = attention_mask[j, :].sum() - 1
+            #     else:
+            #         start = len(query_batch[j]) - 1
+            #         if attention_mask[j, 0] == 0:  # offset left padding
+            #             start += attention_mask[j, :].nonzero()[0]
+            #         end = start + len(response_batch[j])
+            #
+            #     if len(logprobs[j, start:end]) < 2:
+            #         raise ValueError("Responses are too short. Make sure they are at least 4 tokens long.")
+            #
+            #     masks[j, :start] = 0
+            #     masks[j, end:] = 0
 
             all_logits.append(logits)
             all_values.append(values)
             all_logprobs.append(logprobs)
-            all_masks.append(masks)
+            all_masks.append(attention_mask)
 
         return (
             torch.cat(all_logprobs),
-            torch.cat(all_logits)[:, :-1],
-            torch.cat(all_values)[:, :-1],
-            torch.cat(all_masks)[:, :-1],
+            torch.cat(all_logits),
+            torch.cat(all_values),
+            torch.cat(all_masks),
         )
 
     def train_minibatch(
