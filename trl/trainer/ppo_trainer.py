@@ -662,6 +662,9 @@ class PPOTrainer(BaseTrainer):
 
             # logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
             logprobs = logprobs_from_logits(logits, input_ids)
+            logprobs = logprobs * (1 - input_kwargs["prompt_mask"])
+            print("logprobs", logprobs)
+            print("values: ", values.shape, attention_mask.shape)
             # masks = torch.zeros_like(attention_mask)
             # masks[:, :-1] = attention_mask[:, 1:]
             #
