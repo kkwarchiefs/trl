@@ -412,6 +412,8 @@ class PPOTrainer(BaseTrainer):
         queries: List[torch.LongTensor],
         responses: List[torch.LongTensor],
         scores: List[torch.FloatTensor],
+        prompt_names: List[str],
+        response_names: List[str],
     ):
         """
         Run a PPO optimisation step given a list of queries, model responses, and rewards.
@@ -430,14 +432,16 @@ class PPOTrainer(BaseTrainer):
         bs = self.config.batch_size
         print("queries", queries)
         print("responses", responses)
-        queries, responses, scores = self._step_safety_checker(bs, queries, responses, scores)
+        # queries, responses, scores = self._step_safety_checker(bs, queries, responses, scores)
 
         timing = dict()
         t0 = time.time()
 
         t = time.time()
 
-        model_inputs = self.prepare_model_inputs(queries, responses)
+        model_inputs = self.prepare_logit_inputs(queries, responses, prompt_names, response_names)
+        print([(k, v.shape) for k, v in model_inputs.items()])
+        print(model_inputs)
         model_inputs_names = list(model_inputs.keys())
 
         with torch.no_grad():
@@ -593,6 +597,22 @@ class PPOTrainer(BaseTrainer):
                 [{"input_ids": ids, "attention_mask": torch.ones_like(ids)} for ids in input_ids]
             ).to(self.accelerator.device)
         return input_data
+
+    def prepare_logit_inputs(self, queries_t, responses_t, queries, responses):
+        max_length = 2
+        for query, response in zip(queries_t, responses_t):
+            if query.shape[0] + response.shape[0] > max_length:
+                max_length = len(query) + len(response)
+        ge_inputs_batch = []
+        for query, response in zip(queries, responses):
+            inputs = self.tokenizer(query, return_tensors="pt")
+            for key in inputs:
+                inputs[key] = inputs[key][:, :-1]
+            cur_max_length = max_length - inputs['input_ids'].shape[0]
+            ge_inputs = self.tokenizer.build_inputs_for_generation(inputs, targets=response, max_gen_length=cur_max_length, padding=True)
+            ge_inputs['prompt_mask'] = inputs['attention_mask']
+            ge_inputs_batch.append(ge_inputs)
+        return self.data_collator(ge_inputs_batch).to(self.accelerator.device)
 
     def batched_forward_pass(
         self,

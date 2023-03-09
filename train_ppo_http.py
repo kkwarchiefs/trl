@@ -80,16 +80,20 @@ def GetRmBatchNumpy(prompt_list, response_list, RM_tokenizer):
     input_ids_list = []
     attention_mask_list = []
     token_type_ids_list = []
+    prompt_names = []
+    response_names = []
     for prompt, response in zip(prompt_list, response_list):
         print("prompt+response: ", prompt, response)
         prompt = prompt.replace("<|startofpiece|>", "").replace("[回答]", "").replace("[CLS]", "").replace("\n", "").replace("<n>", "")
         response = response.replace("<|startofpiece|>", "").replace("<|endofpiece|>", "").replace("<|endoftext|>", "").replace("<n>", "##402").replace(" ","")
+        prompt_names.append(prompt)
+        response_names.append(response)
         print("prompt+response: ", prompt, response)
         RM_input = RM_tokenizer(prompt, response, truncation=True, max_length=1024, padding="max_length")
         input_ids_list.append(RM_input["input_ids"])
         attention_mask_list.append(RM_input["attention_mask"])
         token_type_ids_list.append(RM_input["token_type_ids"])
-    result = [torch.tensor(input_ids_list).numpy(),  torch.tensor(attention_mask_list).numpy(), torch.tensor(token_type_ids_list).numpy()]
+    result = [torch.tensor(input_ids_list).numpy(),  torch.tensor(attention_mask_list).numpy(), torch.tensor(token_type_ids_list).numpy(), prompt_names, response_names]
     # result = InputDict([("input_ids", torch.tensor(input_ids_list).to(cur_device)),("attention_mask", torch.tensor(attention_mask_list).to(cur_device)),("token_type_ids", torch.tensor(token_type_ids_list).to(cur_device))])
     return result
 
@@ -257,6 +261,8 @@ for cur_big_epoch in range(10):
         '''
         rewards = []
         RM_batch = GetRmBatchNumpy(batch["query"], batch["response"], RM_tokenizer)
+        prompt_names = RM_batch[3]
+        response_names = RM_batch[4]
         inputs = []
         inputs.append(httpclient.InferInput('input_ids', list(RM_batch[0].shape), 'INT64'))
         inputs.append(httpclient.InferInput('attention_mask', list(RM_batch[1].shape), 'INT64'))
@@ -283,7 +289,7 @@ for cur_big_epoch in range(10):
             print(str(ppo_trainer.accelerator.device))
             print("RM time : " + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-        stats = ppo_trainer.step([torch.tensor(r).squeeze() for r in query_input_ids_tensors], response_tensors, rewards)
+        stats = ppo_trainer.step([torch.tensor(r).squeeze() for r in query_input_ids_tensors], response_tensors, rewards, prompt_names, response_names)
         if str(ppo_trainer.accelerator.device) == "cuda:0":
             print(str(ppo_trainer.accelerator.device))
             print("ppo trainer time : " + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
