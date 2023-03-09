@@ -624,6 +624,7 @@ class PPOTrainer(BaseTrainer):
         all_values = []
 
         for i in range(int(bs / fbs)):
+            print("input_kwargs keys:", input_kwargs.keys())
             input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
             query_batch = queries[i * fbs : (i + 1) * fbs]
             response_batch = responses[i * fbs : (i + 1) * fbs]
