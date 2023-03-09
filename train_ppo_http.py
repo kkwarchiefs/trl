@@ -235,7 +235,9 @@ for cur_big_epoch in range(10):
             query = InputDict([("input_ids", torch.tensor(query_input_ids).to(device)), ("position_ids", torch.tensor(query_position_ids).to(device)), ("generation_attention_mask", torch.tensor(query_generation_attention_mask).to(device))])
             gen_len = output_length_sampler()
             response = ppo_trainer.generate(query, gen_len)
+            print("response origin: ", tokenizer.decode(response.squeeze().cpu()))
             response = response.squeeze().cpu().tolist()[len(query_input_ids[0]):][-gen_len:]
+            print("response cut: ", tokenizer.decode(torch.tensor(response)))
             #response = response + [50000] * (gen_len-len(response))
             response_tensors.append(torch.tensor(response))
         batch["query"] = [tokenizer.decode(torch.tensor(r).squeeze()) for r in query_input_ids_tensors]
