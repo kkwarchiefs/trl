@@ -611,6 +611,7 @@ class PPOTrainer(BaseTrainer):
             cur_max_length = max_length - inputs['input_ids'].shape[0]
             ge_inputs = self.tokenizer.build_inputs_for_generation(inputs, targets=response, max_gen_length=cur_max_length, padding=True)
             ge_inputs['prompt_mask'] = inputs['attention_mask']
+            print("ge_inputs", [(k, v.shape) for k, v in ge_inputs.items()])
             ge_inputs_batch.append(ge_inputs)
         return self.data_collator(ge_inputs_batch).to(self.accelerator.device)
 
