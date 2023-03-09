@@ -613,7 +613,7 @@ class PPOTrainer(BaseTrainer):
             ge_inputs['prompt_mask'] = inputs['attention_mask']
             print("ge_inputs", [(k, v.shape) for k, v in ge_inputs.items()])
             ge_inputs_batch.append(ge_inputs)
-        return self.data_collator(ge_inputs_batch).to(self.accelerator.device)
+        return self.data_collator(ge_inputs_batch, truncation=True).to(self.accelerator.device)
 
     def batched_forward_pass(
         self,
