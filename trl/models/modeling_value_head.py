@@ -319,14 +319,15 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
     def forward(
         self,
         input_ids=None,
-        past_key_values=None,
         attention_mask=None,
+        decoder_input_ids=None,
+        decoder_attention_mask=None,
         **kwargs,
     ):
-        print("before generation_from_tensor:", self.tokenizer.decode(input_ids.cpu()[0]), '###' ,self.tokenizer.decode(kwargs["decoder_input_ids"].cpu()[0]))
-        temp_inputs = self.tokenizer.build_inputs_for_generation_from_tensor(input_ids, kwargs["decoder_input_ids"])
+        print("before generation_from_tensor:", self.tokenizer.decode(input_ids.cpu()[0]), '###' ,self.tokenizer.decode(decoder_input_ids.cpu()[0]))
+        temp_inputs = self.tokenizer.build_inputs_for_generation_from_tensor(input_ids, attention_mask, decoder_input_ids, decoder_attention_mask)
         # print(temp_inputs['input_ids'].cpu().numpy())
-        # print([self.tokenizer.decode(torch.tensor(r)) for r in temp_inputs['input_ids'].cpu().numpy()])
+        # print([self.tokenizer.decode(torch.tensor(rf)) for r in temp_inputs['input_ids'].cpu().numpy()])
         print("after:", self.tokenizer.decode(temp_inputs['input_ids'].cpu()[0]))
         base_model_output = self.pretrained_model(**temp_inputs)
 
