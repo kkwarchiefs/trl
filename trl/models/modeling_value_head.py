@@ -318,18 +318,14 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
 
     def forward(
         self,
-        input_ids=None,
-        attention_mask=None,
-        decoder_input_ids=None,
-        decoder_attention_mask=None,
         **kwargs,
     ):
-        print("before generation_from_tensor:", self.tokenizer.decode(input_ids.cpu()[0]), '###' ,self.tokenizer.decode(decoder_input_ids.cpu()[0]))
-        temp_inputs = self.tokenizer.build_inputs_for_generation_from_tensor(input_ids, attention_mask, decoder_input_ids, decoder_attention_mask)
+        # print("before generation_from_tensor:", self.tokenizer.decode(input_ids.cpu()[0]), '###' ,self.tokenizer.decode(decoder_input_ids.cpu()[0]))
+        # temp_inputs = self.tokenizer.build_inputs_for_generation_from_tensor(input_ids, attention_mask, decoder_input_ids, decoder_attention_mask)
         # print(temp_inputs['input_ids'].cpu().numpy())
         # print([self.tokenizer.decode(torch.tensor(rf)) for r in temp_inputs['input_ids'].cpu().numpy()])
-        print("after:", self.tokenizer.decode(temp_inputs['input_ids'].cpu()[0]))
-        base_model_output = self.pretrained_model(**temp_inputs)
+        # print("after:", self.tokenizer.decode(temp_inputs['input_ids'].cpu()[0]))
+        base_model_output = self.pretrained_model(**kwargs)
 
         last_hidden_state = base_model_output.mems[-1]
         lm_logits = base_model_output.logits
@@ -340,8 +336,7 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
         # force upcast in fp32 if logits are in half-precision
         if lm_logits.dtype != torch.float32:
             lm_logits = lm_logits.float()
-        lm_logits = lm_logits[:,input_ids.size()[1]:,:][:, :kwargs["decoder_input_ids"].size()[1], :]
-        value = value[:,input_ids.size()[1]:][:, :kwargs["decoder_input_ids"].size()[1]]
+        print("lm_logits", lm_logits.shape, value.shape)
         return (lm_logits, loss, value)
 
     def generate(self, *args, **kwargs):
