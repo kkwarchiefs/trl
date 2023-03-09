@@ -428,7 +428,8 @@ class PPOTrainer(BaseTrainer):
             `dict[str, Any]`: A summary of the training statistics
         """
         bs = self.config.batch_size
-
+        print("queries", queries)
+        print("responses", responses)
         queries, responses, scores = self._step_safety_checker(bs, queries, responses, scores)
 
         timing = dict()
