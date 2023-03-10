@@ -610,8 +610,11 @@ class PPOTrainer(BaseTrainer):
                 inputs[key] = inputs[key][:, :-1]
             cur_max_length = max_length - inputs['input_ids'].shape[1]
             ge_inputs = self.tokenizer.build_inputs_for_generation(inputs, targets=response, max_gen_length=cur_max_length, padding=True)
-            ge_inputs['prompt_mask'] = torch.zeros_like(ge_inputs['input_ids'])
-            ge_inputs['prompt_mask'][:, :inputs['input_ids'].shape[1]] = inputs['attention_mask']
+            ge_inputs_idx = ge_inputs['input_ids'].tolist()[0]
+            start_idx = ge_inputs_idx.index(50006) + 1
+            end_idx = ge_inputs_idx.index(50007)
+            generation_mask = [0] * start_idx + [1] * (end_idx - start_idx) + [0] * (ge_inputs['input_ids'].shape[1] - end_idx)
+            ge_inputs['generation_mask'] = torch.tensor([generation_mask])
             print("ge_inputs", [(k, v.shape) for k, v in ge_inputs.items()])
             ge_inputs_batch.append({k: v.squeeze(0) for k, v in ge_inputs.items()})
         return self.data_collator(ge_inputs_batch).to(self.accelerator.device)
@@ -658,11 +661,11 @@ class PPOTrainer(BaseTrainer):
             #     attention_mask = input_kwargs["decoder_attention_mask"]
             # else:
             input_ids = input_kwargs["input_ids"]
-            attention_mask = input_kwargs["attention_mask"]
+            attention_mask = input_kwargs["generation_mask"]
 
             # logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
             logprobs = logprobs_from_logits(logits, input_ids)
-            logprobs = logprobs * (1 - input_kwargs["prompt_mask"])
+            logprobs = logprobs * attention_mask
             print("logprobs", logprobs)
             print("values: ", values.shape, attention_mask.shape)
             # masks = torch.zeros_like(attention_mask)
