@@ -119,12 +119,12 @@ def set_seed(seed: int):
 config = PPOConfig(
     model_name="/search/ai/pretrain_models/glm-large-chinese",
     learning_rate=1.41e-5,
-    batch_size=2,
+    batch_size=8,
     ppo_epochs=1,
     init_kl_coef=0.3,
     log_with="wandb",
     remove_unused_columns=False,
-    mini_batch_size=2
+    mini_batch_size=8
 )
 #print(dir(config))
 print(config.batch_size)
