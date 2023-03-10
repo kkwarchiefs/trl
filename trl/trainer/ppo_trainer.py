@@ -260,15 +260,14 @@ class PPOTrainer(BaseTrainer):
 
         (
             self.model,
-            self.ref_model,
             self.optimizer,
             self.data_collator,
             self.dataloader,
             self.lr_scheduler,
         ) = self.accelerator.prepare(
-            self.model, self.ref_model, self.optimizer, self.data_collator, self.dataloader, self.lr_scheduler
+            self.model, self.optimizer, self.data_collator, self.dataloader, self.lr_scheduler
         )
-
+        self.ref_model.to(self.model.device)
         # In a distributed setup, only logging needs to be performed on the main process
         # check: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
         # or: https://discuss.pytorch.org/t/use-distributed-data-parallel-correctly/82500/11
