@@ -184,23 +184,23 @@ class PPOTrainer(BaseTrainer):
         self.is_encoder_decoder = hasattr(self.model, "is_encoder_decoder")
         self.is_peft_model = getattr(self.model, "is_peft_model", False)
 
-        # if isinstance(ref_model, SUPPORTED_ARCHITECTURES):
-        #     self.ref_model = ref_model
-        #     if num_shared_layers is not None:
-        #         warnings.warn(
-        #             "num_shared_layers is ignored when ref_model is provided. Two different models are used for the "
-        #             "model and the reference model and no layers are shared.",
-        #             UserWarning,
-        #         )
-        # elif ref_model is None and not self.is_peft_model:
-        #     self.ref_model = create_reference_model(self.model, num_shared_layers=num_shared_layers)
-        # elif self.is_peft_model:
-        #     self.ref_model = None
-        # else:
-        #     raise ValueError(
-        #         f"ref_model must be a PreTrainedModelWrapper or `None`, got {type(ref_model)} - supported "
-        #         f"architectures are: {SUPPORTED_ARCHITECTURES} "
-        #     )
+        if isinstance(ref_model, SUPPORTED_ARCHITECTURES):
+            self.ref_model = ref_model
+            if num_shared_layers is not None:
+                warnings.warn(
+                    "num_shared_layers is ignored when ref_model is provided. Two different models are used for the "
+                    "model and the reference model and no layers are shared.",
+                    UserWarning,
+                )
+        elif ref_model is None and not self.is_peft_model:
+            self.ref_model = create_reference_model(self.model, num_shared_layers=num_shared_layers)
+        elif self.is_peft_model:
+            self.ref_model = None
+        else:
+            raise ValueError(
+                f"ref_model must be a PreTrainedModelWrapper or `None`, got {type(ref_model)} - supported "
+                f"architectures are: {SUPPORTED_ARCHITECTURES} "
+            )
 
         if not (isinstance(tokenizer, PreTrainedTokenizer) or isinstance(tokenizer, PreTrainedTokenizerFast)):
             raise ValueError(
@@ -456,8 +456,8 @@ class PPOTrainer(BaseTrainer):
                 )
 
             else:
-                # ref_logprobs, _, _, _ = self.batched_forward_pass(self.ref_model, queries, responses, model_inputs)
-                ref_logprobs = all_logprobs
+                ref_logprobs, _, _, _ = self.batched_forward_pass(self.ref_model, queries, responses, model_inputs)
+                # ref_logprobs = all_logprobs
         timing["time/ppo/forward_pass"] = time.time() - t
 
         t = time.time()
