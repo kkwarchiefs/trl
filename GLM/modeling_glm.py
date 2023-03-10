@@ -890,7 +890,7 @@ class GLMForConditionalGeneration(GLMPreTrainedModel):
             mems=None,
             **kwargs
     ):
-        model_output = self.glm.forward(input_ids, position_ids, attention_mask, mems=mems, **kwargs)
+        model_output = self.glm(input_ids, position_ids, attention_mask, mems=mems, **kwargs)
         lm_logits = model_output.logits
         loss = None
         if labels is not None:
@@ -903,5 +903,68 @@ class GLMForConditionalGeneration(GLMPreTrainedModel):
         return ModelOutput(
             loss=loss,
             logits=lm_logits,
-            mems=model_output.mems
+            mems=model_output.last_hidden_states,
         )
+
+
+@add_start_docstrings(
+    """GLM Model transformer with a sequence classification/regression head on top (a linear layer on top of
+    the pooled output) e.g. for GLUE tasks. """,
+    GLM_START_DOCSTRING,
+)
+class GLMForSequenceClassification(GLMPreTrainedModel):
+    def __init__(self, config: GLMConfig, hidden_dropout=None, num_class=1):
+        super().__init__(config)
+        self.pool_token = config.pool_token
+        self.glm = GLMModel(config)
+        self.glm.output_predict = False
+        self.num_class = num_class
+        # Multi-choice head.
+        self.dense = torch.nn.Linear(config.hidden_size, config.hidden_size)
+        classifier_dropout = (
+            config.classifier_dropout if config.classifier_dropout is not None else config.output_dropout_prob
+        )
+        self.dropout = torch.nn.Dropout(classifier_dropout)
+        self.out_proj = torch.nn.Linear(config.hidden_size, config.num_labels)
+
+        # Initialize weights and apply final processing
+        self.post_init()
+
+    @add_start_docstrings_to_model_forward(GLM_INPUTS_DOCSTRING.format("batch_size, sequence_length"))
+    @add_code_sample_docstrings(
+        processor_class=_TOKENIZER_FOR_DOC,
+        checkpoint=_CHECKPOINT_FOR_DOC,
+        output_type=SequenceClassifierOutput,
+        config_class=_CONFIG_FOR_DOC,
+    )
+    def forward(self,
+                input_ids=None,
+                position_ids=None,
+                attention_mask=None,
+                labels=None):
+
+        num_choices = None
+
+        if len(input_ids.shape) == 3:
+            batch_size, num_choices = input_ids.shape[:2]
+            input_ids = input_ids.reshape(-1, input_ids.size(-1))
+            attention_mask = attention_mask.reshape(-1, *attention_mask.size()[2:])
+            position_ids = position_ids.reshape(-1, *position_ids.size()[2:])
+        model_out = self.glm(input_ids, position_ids, attention_mask)
+        outputs, mems = model_out.last_hidden_states, model_out.mems
+
+        output = outputs[:, 0, :]
+        output = self.dropout(output)
+        output = torch.tanh(self.dense(output))
+        output = self.dropout(output)
+        logits = self.out_proj(output)
+        if num_choices is not None:
+            logits = logits.view(-1, num_choices)
+        loss = None
+        if labels is not None:
+            loss_fct = CrossEntropyLoss()
+            loss = loss_fct(logits, labels)
+        # loss = F.cross_entropy(logits.contiguous().float(), labels.long())
+        return SequenceClassifierOutput(loss=loss,
+                                        logits=logits,
+                                        hidden_states=outputs)
