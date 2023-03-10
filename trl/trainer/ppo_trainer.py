@@ -775,6 +775,7 @@ class PPOTrainer(BaseTrainer):
             non_score_rewards.append(non_score_reward)
             reward = non_score_reward.clone()
             last_non_masked_index = mask.nonzero()[-1]
+            print("non_score_reward", non_score_reward, last_non_masked_index, score)
             reward[last_non_masked_index] += score
             rewards.append(reward)
         return torch.stack(rewards), torch.stack(non_score_rewards)
