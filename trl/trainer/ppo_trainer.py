@@ -260,12 +260,13 @@ class PPOTrainer(BaseTrainer):
 
         (
             self.model,
+            self.ref_model,
             self.optimizer,
             self.data_collator,
             self.dataloader,
             self.lr_scheduler,
         ) = self.accelerator.prepare(
-            self.model, self.optimizer, self.data_collator, self.dataloader, self.lr_scheduler
+            self.model, self.ref_model, self.optimizer, self.data_collator, self.dataloader, self.lr_scheduler
         )
 
         # In a distributed setup, only logging needs to be performed on the main process
