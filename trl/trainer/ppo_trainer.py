@@ -611,11 +611,11 @@ class PPOTrainer(BaseTrainer):
             cur_max_length = max_length - inputs['input_ids'].shape[1]
             ge_inputs = self.tokenizer.build_inputs_for_generation(inputs, targets=response, max_gen_length=cur_max_length, padding=True)
             ge_inputs_idx = ge_inputs['input_ids'].tolist()[0]
-            start_idx = ge_inputs_idx.index(50006) + 1
+            start_idx = ge_inputs_idx.index(50006)
             try:
-                end_idx = ge_inputs_idx.index(50007)
+                end_idx = ge_inputs_idx.index(50007) - 1
             except:
-                end_idx = ge_inputs['input_ids'].shape[1]
+                end_idx = ge_inputs['input_ids'].shape[1] - 1
             generation_mask = [0] * start_idx + [1] * (end_idx - start_idx) + [0] * (ge_inputs['input_ids'].shape[1] - end_idx)
             ge_inputs['generation_mask'] = torch.tensor([generation_mask])
             print("ge_inputs", [(k, v.shape) for k, v in ge_inputs.items()])
