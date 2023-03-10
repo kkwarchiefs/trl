@@ -780,17 +780,15 @@ class GLMModel(GLMPreTrainedModel):
             attention_mask = torch.zeros(batch_size)
         # Transformer.
         transformer_output = self.transformer(embeddings, position_ids, attention_mask, mems)
-        logits, hidden_layers = transformer_output
-        # outputs = hidden_layers
+        last_hidden_states, mems = transformer_output
+        logits = None
         if self.output_predict:
-            # Parallel logits.
-            # logits_parallel = mpu.copy_to_model_parallel_region(
-            #     logits)
-            logits = F.linear(logits, self.word_embeddings.weight)
+            logits = F.linear(last_hidden_states, self.word_embeddings.weight)
 
         return ModelOutput(
+            last_hidden_states=last_hidden_states,
             logits=logits,
-            mems=hidden_layers,
+            mems=mems,
         )
 
 
@@ -815,7 +813,7 @@ class GLMForMultipleChoice(GLMPreTrainedModel):
             mems=None,
             **kwargs
     ):
-        model_output = self.glm.forward(input_ids, position_ids, attention_mask, mems=mems, **kwargs)
+        model_output = self.glm(input_ids, position_ids, attention_mask, mems=mems, **kwargs)
         lm_logits = model_output.logits
         log_probs = []
         for output, choices, choice_index in zip(F.log_softmax(lm_logits, dim=-1), choice_ids, choice_indices):
@@ -874,6 +872,16 @@ class GLMForConditionalGeneration(GLMPreTrainedModel):
                 position_ids = position_ids[:, :, :seq_length]
             if attention_mask is not None:
                 attention_mask = attention_mask[:, :, :seq_length, :seq_length]
+        if position_ids is not None and input_ids.size(0) > position_ids.size(0):
+            batch_size = position_ids.size(0)
+            num_beams = input_ids.size(0) // batch_size
+            position_ids = position_ids.unsqueeze(1).expand(-1, num_beams, -1, -1)
+            position_ids = position_ids.reshape(batch_size * num_beams, *position_ids.shape[-2:])
+        if attention_mask is not None and input_ids.size(0) > attention_mask.size(0):
+            batch_size = attention_mask.size(0)
+            num_beams = input_ids.size(0) // batch_size
+            attention_mask = attention_mask.unsqueeze(1).expand(-1, num_beams, -1, -1, -1)
+            attention_mask = attention_mask.reshape(batch_size * num_beams, *attention_mask.shape[-3:])
         return {
             "input_ids": input_ids,
             "position_ids": position_ids,

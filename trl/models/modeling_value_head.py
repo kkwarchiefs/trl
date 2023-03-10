@@ -327,7 +327,7 @@ class AutoModelForSeq2SeqLMWithValueHead(PreTrainedModelWrapper):
         # print("after:", self.tokenizer.decode(temp_inputs['input_ids'].cpu()[0]))
         base_model_output = self.pretrained_model(**kwargs)
 
-        last_hidden_state = base_model_output.mems[-1]
+        last_hidden_state = base_model_output.mems
         lm_logits = base_model_output.logits
         loss = base_model_output.loss
 
